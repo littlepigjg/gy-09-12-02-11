@@ -180,6 +180,42 @@ html, body {
   word-break: break-all;
 }
 
+.seg {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.seg button {
+  flex: 1;
+  padding: 6px 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: #232c3f;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.seg button:hover {
+  background: #2c3850;
+}
+
+.seg button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.mode-hint {
+  margin-bottom: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 .rank-list {
   list-style: none;
   margin: 8px 0 0;

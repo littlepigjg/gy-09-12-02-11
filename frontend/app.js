@@ -21,6 +21,7 @@ const app = createApp({
       importText: "",
       pathFrom: "",
       pathTo: "",
+      pathMode: "hops",
       pathResult: "",
       cfA: "",
       cfB: "",
@@ -195,16 +196,41 @@ const app = createApp({
       this.cy.fit(undefined, 30);
     },
 
+    formatCost(cost) {
+      // 去掉浮点尾数噪声（如 1.2000000000000002 -> 1.2）
+      return Number.parseFloat(Number(cost).toFixed(4)).toString();
+    },
+
     async findPath() {
-      const { path } = await this.api(
-        `/api/shortest_path?from=${encodeURIComponent(this.pathFrom)}&to=${encodeURIComponent(this.pathTo)}`
-      );
-      if (!path) {
-        this.pathResult = "不可达";
-        this.clearHighlight();
+      let data;
+      try {
+        data = await this.api(
+          `/api/shortest_path?from=${encodeURIComponent(this.pathFrom)}` +
+            `&to=${encodeURIComponent(this.pathTo)}&mode=${this.pathMode}`
+        );
+      } catch (e) {
+        // 参数缺失等异常只提示，不抛出未捕获异常，画布维持现状
+        this.pathResult = `查询失败: ${e.message}`;
         return;
       }
-      this.pathResult = `${path.length - 1} 步: ${path.join(" -> ")}`;
+
+      const path = data.path;
+      if (!path || !path.length) {
+        // 先撤掉旧高亮再写文案，避免像旧代码那样被 clearHighlight 顺手清空
+        this.cy.elements().removeClass("highlight dim");
+        this.pathResult = "不可达";
+        return;
+      }
+
+      const hops = path.length - 1;
+      if (this.pathMode === "weight") {
+        this.pathResult =
+          hops === 0
+            ? "起点与终点相同：0 步，总代价 0"
+            : `总代价 ${this.formatCost(data.cost)}（${hops} 步）: ${path.join(" -> ")}`;
+      } else {
+        this.pathResult = `${hops} 步: ${path.join(" -> ")}`;
+      }
       this.highlightPath(path);
     },
 

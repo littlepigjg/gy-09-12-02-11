@@ -1,10 +1,17 @@
-"""图算法：BFS 最短路径、共同好友、简化 PageRank、简化 Louvain 社群发现。
+"""图算法：BFS 最短路径、Dijkstra 加权最短路径、共同好友、简化 PageRank、
+简化 Louvain 社群发现。
 
 所有算法均直接读取内存中的邻接表缓存（Graph.adj），
 不访问数据库，保证在大规模图上的内存级高效执行。
 """
 
+import heapq
 from collections import deque
+
+# 最短路径口径：hops = 按经过的边数（BFS）；weight = 按权重折算的总代价（Dijkstra）
+PATH_MODE_HOPS = "hops"
+PATH_MODE_WEIGHT = "weight"
+VALID_PATH_MODES = (PATH_MODE_HOPS, PATH_MODE_WEIGHT)
 
 
 def bfs_shortest_path(graph, source, target):
@@ -43,6 +50,71 @@ def bfs_shortest_path(graph, source, target):
         node = prev[node]
     path.reverse()
     return path
+
+
+def dijkstra_shortest_path(graph, source, target):
+    """加权最短路径（Dijkstra）。
+
+    边的 weight 表示关系亲密度（越大越铁），因此单边通过代价取倒数
+    ``1 / weight``：铁关系代价低、点头之交代价高，总代价最小的路径
+    优先沿最铁的关系走。权重为非正数的边视为无效边，不参与路径。
+
+    返回 ``(path, cost)``：
+      - path 为路径节点列表（含首尾），cost 为路径上的总代价；
+      - 节点不存在或不可达时返回 ``(None, None)``；
+      - 起点即终点时返回 ``([source], 0.0)``。
+    时间复杂度 O((V + E) log V)。
+    """
+    source, target = str(source), str(target)
+    if not graph.has_node(source) or not graph.has_node(target):
+        return None, None
+    if source == target:
+        return [source], 0.0
+
+    dist = {source: 0.0}
+    prev = {source: None}
+    heap = [(0.0, source)]
+
+    while heap:
+        cur_dist, cur = heapq.heappop(heap)
+        if cur_dist > dist.get(cur, float("inf")):
+            continue  # 过期的堆条目
+        if cur == target:
+            break
+        for nb, weight in graph.adj.get(cur, {}).items():
+            if weight <= 0:
+                continue  # 亲密度非正的边无法通行
+            edge_cost = 1.0 / weight
+            new_dist = cur_dist + edge_cost
+            if new_dist < dist.get(nb, float("inf")):
+                dist[nb] = new_dist
+                prev[nb] = cur
+                heapq.heappush(heap, (new_dist, nb))
+
+    if target not in dist:
+        return None, None
+
+    path = []
+    node = target
+    while node is not None:
+        path.append(node)
+        node = prev[node]
+    path.reverse()
+    return path, dist[target]
+
+
+def shortest_path(graph, source, target, mode=PATH_MODE_HOPS):
+    """最短路径统一入口。
+
+    mode=PATH_MODE_HOPS（默认）走 BFS，只数边数，返回
+    ``(path, None)``，与原 bfs_shortest_path 行为完全一致；
+    mode=PATH_MODE_WEIGHT 走 Dijkstra，按 ``1/weight`` 累计总代价，
+    返回 ``(path, cost)``。不可达或节点不存在时两种口径均返回
+    ``(None, None)``。
+    """
+    if mode == PATH_MODE_WEIGHT:
+        return dijkstra_shortest_path(graph, source, target)
+    return bfs_shortest_path(graph, source, target), None
 
 
 def common_friends(graph, a, b):

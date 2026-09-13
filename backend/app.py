@@ -98,10 +98,18 @@ def api_shortest_path():
     if not source or not target:
         return jsonify({"error": "需要 from 与 to 参数"}), 400
 
-    path = algorithms.bfs_shortest_path(graph, source, target)
+    # 口径切换：hops=按边数（BFS，默认，保持原行为）；weight=按 1/weight 总代价（Dijkstra）
+    mode = request.args.get("mode", algorithms.PATH_MODE_HOPS)
+    if mode not in algorithms.VALID_PATH_MODES:
+        mode = algorithms.PATH_MODE_HOPS
+
+    path, cost = algorithms.shortest_path(graph, source, target, mode=mode)
     if path is None:
-        return jsonify({"error": "节点不存在或不可达", "path": None})
-    return jsonify({"path": path, "length": len(path) - 1})
+        return jsonify({"error": "节点不存在或不可达", "path": None, "mode": mode})
+    result = {"path": path, "length": len(path) - 1, "mode": mode}
+    if mode == algorithms.PATH_MODE_WEIGHT:
+        result["cost"] = round(cost, 6)
+    return jsonify(result)
 
 
 @app.route("/api/common_friends", methods=["GET"])

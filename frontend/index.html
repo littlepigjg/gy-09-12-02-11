@@ -31,7 +31,18 @@
         </section>
 
         <section class="panel">
-          <h2>最短路径 (BFS)</h2>
+          <h2>最短路径</h2>
+          <div class="seg">
+            <button type="button"
+                    :class="{ active: pathMode === 'hops' }"
+                    @click="pathMode = 'hops'">按步数 (BFS)</button>
+            <button type="button"
+                    :class="{ active: pathMode === 'weight' }"
+                    @click="pathMode = 'weight'">按权重 (Dijkstra)</button>
+          </div>
+          <div class="mode-hint" v-if="pathMode === 'weight'">
+            单边代价 = 1 ÷ 关系权重：关系越铁代价越低，沿总代价最小的路走
+          </div>
           <div class="row">
             <select v-model="pathFrom">
               <option value="">起点</option>

@@ -5,7 +5,7 @@
 ## 功能特性
 
 - **图数据导入**：支持导入节点/边 JSON 数据，或一键生成带社群结构的样例网络
-- **最短路径**：BFS 广度优先搜索，前端高亮展示路径
+- **最短路径（双口径可切换）**：按步数走 BFS 广度优先搜索（只数经过几条边）；按权重走 Dijkstra，单边代价取 `1/weight`（关系越铁代价越低），前端高亮展示路径
 - **共同好友**：基于邻接表集合求交集
 - **PageRank**：简化幂迭代实现，输出影响力 Top-N 排名
 - **社群发现**：Louvain 算法（局部移动 + 社区聚合），前端按社群着色
@@ -27,7 +27,7 @@
 │   ├── app.py           # Flask REST API
 │   ├── storage.py       # SQLite 节点/边表持久化
 │   ├── graph.py         # 内存邻接表缓存
-│   ├── algorithms.py    # BFS / 共同好友 / PageRank / Louvain
+│   ├── algorithms.py    # BFS / Dijkstra / 共同好友 / PageRank / Louvain
 │   └── sample_data.py   # 随机块模型样例数据生成
 ├── frontend/
 │   ├── index.html
@@ -80,7 +80,7 @@ bash run.sh 8000
 | POST | `/api/load_sample` | 生成并导入内置样例网络 |
 | GET  | `/api/graph` | 获取全部节点与边 |
 | GET  | `/api/stats` | 图基础统计 |
-| GET  | `/api/shortest_path?from&to` | BFS 最短路径 |
+| GET  | `/api/shortest_path?from&to&mode` | 最短路径；`mode=hops`（默认，BFS 按边数）或 `weight`（Dijkstra 按 `1/weight` 总代价，额外返回 `cost`） |
 | GET  | `/api/common_friends?node1&node2` | 共同好友 |
 | GET  | `/api/pagerank?top_n=10` | PageRank 排名 |
 | GET  | `/api/communities` | Louvain 社群划分 |
@@ -104,7 +104,8 @@ bash run.sh 8000
 
 ## 算法说明
 
-- **BFS 最短路径**：无权图广度优先搜索，时间复杂度 O(V+E)
+- **BFS 最短路径（按步数）**：无权图广度优先搜索，时间复杂度 O(V+E)
+- **Dijkstra 最短路径（按权重）**：以 `1/weight` 作为单边通过代价（权重越大关系越铁、代价越低），优先队列实现，时间复杂度 O((V+E) log V)；权重非正的边不参与路径
 - **共同好友**：两节点邻接集合求交集，O(min(deg(a), deg(b)))
 - **PageRank（简化）**：幂迭代法，阻尼系数 0.85，按出度均分权重，悬挂节点权重回流
 - **Louvain 社群发现**：两阶段迭代——局部移动（按模块度增益 `ΔQ = k_i,in/m - Σ_tot·k_i/(2m²)` 移动节点）+ 社区聚合（将社区收缩为超节点递归），多层级执行至模块度收敛
